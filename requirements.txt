@@ -1,0 +1,5 @@
+python-opencv
+numpy
+tqdm
+pymediainfo
+ffmpeg
