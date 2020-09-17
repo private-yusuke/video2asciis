@@ -46,3 +46,6 @@ You can play your converted texts in your terminal in real time.
     The bigger size you specify, the result is rough and the conversion is faster.
 * `v2t.py` also supports the custom settings of output frame size.
 
+---
+
+Need information in Japanese? If so, you may want this: https://scrapbox.io/public-yusuke/%E6%96%87%E5%AD%97%E5%88%97%E3%81%A7%E5%8B%95%E7%94%BB%E3%82%92%E8%A1%A8%E7%8F%BE%E3%81%99%E3%82%8B
