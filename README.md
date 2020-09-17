@@ -10,7 +10,7 @@ video2asciis lets you create old-school style videos like shown above.
 
 ---
 
-## requirements
+## Requirements
 
 ```sh
 $ pip3 install python-opencv numpy tqdm pymediainfo ffmpeg
@@ -45,3 +45,4 @@ You can play your converted texts in your terminal in real time.
     
     The bigger size you specify, the result is rough and the conversion is faster.
 * `v2t.py` also supports the custom settings of output frame size.
+
