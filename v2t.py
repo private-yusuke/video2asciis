@@ -12,6 +12,11 @@ import os
 import ffmpeg
 import re
 
+global N
+global N_WIDTH
+global N_HEIGHT
+global THRESHOLD
+
 N = 16
 N_WIDTH = N//2
 N_HEIGHT = N
@@ -19,16 +24,6 @@ THRESHOLD = 90
 
 CHARS = ['W', '#', 'R', 'E', '8', 'x', 's', 'i', ';', ',', '.', ' ']
 PALETTE = np.arange(len(CHARS))
-
-parser = argparse.ArgumentParser(
-    description='This program converts videos to texts.')
-
-parser.add_argument('input', help='input video')
-parser.add_argument('output', help='output text')
-parser.add_argument('-s', '--size', type=int)
-parser.add_argument('-m', '--mode', type=str, help='choose WHITE or BLACK')
-parser.add_argument('-t', '--threshold', type=int,
-                    help='threshold between white and black')
 
 
 def cover_multiple(current_length, multiple):
@@ -54,32 +49,32 @@ def slicer(a, chunk_i, chunk_j, two_d=True):
     return c
 
 
-def frameToText(frame, opts):
+def frameToText(frame, chars, palette, n_height, n_width, mode=None, threshold=110):
     text = ''
 
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    if not opts['mode']:
-        if frame_gray.mean() < opts['THRESHOLD']:
+    if mode is None:
+        if frame_gray.mean() < threshold:
             text = 'BLACK\n'
-            chars = np.array(list(reversed(opts['CHARS'])), dtype='<U1')
+            chars = np.array(list(reversed(chars)), dtype='<U1')
         else:
             text = 'WHITE\n'
-            chars = np.array(opts['CHARS'], dtype='<U1')
+            chars = np.array(chars, dtype='<U1')
     else:
-        if opts['mode'] == 'WHITE':
+        if mode == 'WHITE':
             text = 'WHITE\n'
-            chars = np.array(opts['CHARS'], dtype='<U1')
+            chars = np.array(chars, dtype='<U1')
         else:
             text = 'BLACK\n'
-            chars = np.array(list(reversed(opts['CHARS'])), dtype='<U1')
+            chars = np.array(list(reversed(chars)), dtype='<U1')
 
     tmp = np.nanmean(
-        slicer(frame_gray, opts['N_HEIGHT'], opts['N_WIDTH']), axis=(2, 3))
+        slicer(frame_gray, n_height, n_width), axis=(2, 3))
     tmp = tmp / 256 * len(chars)
     tmp = tmp.astype(int)
-    ind = np.digitize(tmp.ravel(), opts['PALETTE'], right=True)
+    ind = np.digitize(tmp.ravel(), PALETTE, right=True)
     tmp2 = ''.join(chars[ind].tolist())
-    chunk_size = ceil(frame_gray.shape[1]/opts['N_WIDTH'])
+    chunk_size = ceil(frame_gray.shape[1]/n_width)
 
     tmp3 = [tmp2[i:i+chunk_size] for i in range(0, len(tmp2), chunk_size)]
 
@@ -87,25 +82,35 @@ def frameToText(frame, opts):
     return text
 
 
-def loadFrame(path):
-    return cv2.imread(path)
+def loadFrame(bytes):
+    return cv2.imdecode(np.fromstring(bytes, dtype='uint8'), cv2.IMREAD_UNCHANGED)
 
 
-def loadFrameAndConvertToText(data):
+def loadFrameFileAndConvertToText(data):
     path = data[0]
     opts = data[1]
-    return frameToText(loadFrame(path), opts)
+    with open(path, 'rb') as f:
+        return frameToText(loadFrame(f.read()), **opts)
 
 
-def main(args):
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='This program converts videos to texts.')
+
+    parser.add_argument('input', help='input video')
+    parser.add_argument('output', help='output text')
+    parser.add_argument('-s', '--size', type=int)
+    parser.add_argument('-m', '--mode', type=str, help='choose WHITE or BLACK')
+    parser.add_argument('-t', '--threshold', type=int,
+                        help='threshold between white and black')
+
+    args = parser.parse_args()
+
     if args.size:
-        global N
         N = args.size
     if args.threshold:
-        global THRESHOLD
         THRESHOLD = args.threshold
 
-    global N_WIDTH, N_HEIGHT
     N_WIDTH = N//2
     N_HEIGHT = N
 
@@ -114,11 +119,11 @@ def main(args):
 
     texts = []
     opts = {}
-    opts['THRESHOLD'] = THRESHOLD
-    opts['CHARS'] = CHARS
-    opts['N_HEIGHT'] = N_HEIGHT
-    opts['N_WIDTH'] = N_WIDTH
-    opts['PALETTE'] = PALETTE
+    opts['threshold'] = THRESHOLD
+    opts['chars'] = CHARS
+    opts['n_height'] = N_HEIGHT
+    opts['n_width'] = N_WIDTH
+    opts['palette'] = PALETTE
     opts['mode'] = args.mode
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -128,7 +133,7 @@ def main(args):
         files.sort(key=lambda f: int(re.sub('\D', '', f)))
         with mp.Pool(mp.cpu_count()) as pool:
             with tqdm(total=len(files)) as t:
-                for res in pool.imap(loadFrameAndConvertToText, zip(list(map(lambda f: os.path.join(tmpdir, f), files)), repeat(opts))):
+                for res in pool.imap(loadFrameFileAndConvertToText, zip(list(map(lambda f: os.path.join(tmpdir, f), files)), repeat(opts))):
                     texts.append(res)
                     t.update()
 
@@ -148,8 +153,3 @@ def main(args):
             filepath, fps, int(width), int(height), origwidth, origheight))
         f.write('=====\n')
         f.write('\n'.join(texts))
-
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-    main(args)

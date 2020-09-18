@@ -14,17 +14,6 @@ DISPLAY_MODE = {
     'BLACK': [[255, 255, 255], [0, 0, 0]]
 }
 
-parser = argparse.ArgumentParser(
-    description='This program converts text to videos.')
-
-parser.add_argument('input', type=str, help='input text file')
-parser.add_argument('output', type=str, help='output video')
-parser.add_argument('-W', '--width', type=int, help='output video width')
-parser.add_argument('-H', '--height', type=int, help='output video height')
-parser.add_argument('-F', '--fps', type=int, help='FPS of output video')
-parser.add_argument('-A', '--audio', type=str, help='input audio file')
-parser.add_argument('-f', '--font', type=str, help='font path', required=True)
-
 
 def getDisplayMode(mode):
     if mode not in DISPLAY_MODE:
@@ -33,35 +22,50 @@ def getDisplayMode(mode):
         return DISPLAY_MODE[mode]
 
 
-def textToFrame(data):
+def _textToFrame(data):
     text = data[0]
     opts = data[1]
-    # print(os.getpid())
+    return textToFrame(text, **opts)
 
+
+def textToFrame(text, font, output_height, output_width, height, width):
     monospace = cv2.freetype.createFreeType2()
     monospace.loadFontData(
-        fontFileName=opts['font'], id=0)
-    fontHeight = opts['output_height'] // opts['height']
+        fontFileName=font, id=0)
+    fontHeight = output_height // height
     textSize, baseline = monospace.getTextSize(
-        text='a'*opts['width'], fontHeight=fontHeight, thickness=-1)
-    region = (textSize[0], fontHeight*opts['height'])
+        text='a'*width, fontHeight=fontHeight, thickness=-1)
+    region = (fontHeight*height, textSize[0])
 
     mode, rendertext = text.split('\n', 1)
     colors = getDisplayMode(mode)
 
-    frame = np.full((*reversed(region), 3), colors[1], dtype=np.uint8)
+    frame = np.full((*region, 3), colors[1], dtype=np.uint8)
 
     for i, line in enumerate(text.split('\n')):
         monospace.putText(img=frame, text=line, org=(0, i*fontHeight),
                           fontHeight=fontHeight, color=colors[0], thickness=-1, line_type=cv2.LINE_4, bottomLeftOrigin=True)
 
     frame = cv2.resize(frame, dsize=(
-        opts['output_width'], opts['output_height']))
+        output_width, output_height))
     # cv2.imwrite('test/{:04}.png'.format(ind), frame)
     return frame
 
 
-def main():
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='This program converts text to videos.')
+
+    parser.add_argument('input', type=str, help='input text file')
+    parser.add_argument('output', type=str, help='output video')
+    parser.add_argument('-W', '--width', type=int, help='output video width')
+    parser.add_argument('-H', '--height', type=int, help='output video height')
+    parser.add_argument('-F', '--fps', type=int, help='FPS of output video')
+    parser.add_argument('-A', '--audio', type=str, help='input audio file')
+    parser.add_argument('-f', '--font', type=str,
+                        help='font path', required=True)
+    args = parser.parse_args()
+
     with open(args.input) as f:
         fp = next(itertools.islice(csv.DictReader(
             [f.readline(), f.readline()]), 1))
@@ -110,7 +114,7 @@ def main():
         with mp.Pool(mp.cpu_count()) as pool:
             with tqdm(total=len(texts)) as t:
                 for res in pool.imap(
-                        textToFrame, zip(texts, repeat(opts))):
+                        _textToFrame, zip(texts, repeat(opts))):
                     t.update()
                     out.write(res)
 
@@ -121,8 +125,3 @@ def main():
             audio = ffmpeg.input(args.audio)
             ffmpeg.output(audio.audio, video.video,
                           args.output, shortest=None).run()
-
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-    main()
