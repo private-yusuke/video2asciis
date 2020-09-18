@@ -45,6 +45,7 @@ You can play your converted texts in your terminal in real time.
     
     The bigger size you specify, the result is rough and the conversion is faster.
 * `v2t.py` also supports the custom settings of output frame size.
+* You can convert your image into this style by using `image2textimage.py`.
 
 ---
 
