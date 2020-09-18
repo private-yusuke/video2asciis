@@ -34,9 +34,8 @@ def getDisplayMode(mode):
 
 
 def textToFrame(data):
-    ind = data[0]
-    text = data[1]
-    opts = data[2]
+    text = data[0]
+    opts = data[1]
     # print(os.getpid())
 
     monospace = cv2.freetype.createFreeType2()
@@ -59,7 +58,7 @@ def textToFrame(data):
     frame = cv2.resize(frame, dsize=(
         opts['output_width'], opts['output_height']))
     # cv2.imwrite('test/{:04}.png'.format(ind), frame)
-    return (ind, frame)
+    return frame
 
 
 def main():
@@ -105,24 +104,15 @@ def main():
             output = args.output + '_tmp.mp4'
         print(output)
 
-        frames_unord = []
-        with mp.Pool(mp.cpu_count()) as pool:
-            with tqdm(total=len(texts)) as t:
-                for res in pool.imap_unordered(
-                        textToFrame, zip(range(len(texts)), texts, repeat(opts))):
-                    t.update()
-                    frames_unord.append(res)
-
-        frames = sorted(frames_unord)
-        frames = list(map(lambda p: p[1], frames))
-
         out = cv2.VideoWriter(output, cv2.VideoWriter_fourcc(
             *'mp4v'), FPS, (WIDTH, HEIGHT))
 
-        with tqdm(total=len(frames)) as t:
-            for frame in frames:
-                out.write(frame)
-                t.update()
+        with mp.Pool(mp.cpu_count()) as pool:
+            with tqdm(total=len(texts)) as t:
+                for res in pool.imap(
+                        textToFrame, zip(texts, repeat(opts))):
+                    t.update()
+                    out.write(res)
 
         out.release()
 

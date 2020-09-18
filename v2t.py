@@ -54,10 +54,7 @@ def slicer(a, chunk_i, chunk_j, two_d=True):
     return c
 
 
-def frameToText(data):
-    k = data[0]
-    frame = data[1]
-    opts = data[2]
+def frameToText(frame, opts):
     text = ''
 
     frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -87,13 +84,17 @@ def frameToText(data):
     tmp3 = [tmp2[i:i+chunk_size] for i in range(0, len(tmp2), chunk_size)]
 
     text += '\n'.join(tmp3)
-    return (k, text)
+    return text
 
 
-def loadFrame(data):
-    ind = data[0]
-    path = data[1]
-    return (ind, cv2.imread(path))
+def loadFrame(path):
+    return cv2.imread(path)
+
+
+def loadFrameAndConvertToText(data):
+    path = data[0]
+    opts = data[1]
+    return frameToText(loadFrame(path), opts)
 
 
 def main(args):
@@ -120,8 +121,6 @@ def main(args):
     opts['PALETTE'] = PALETTE
     opts['mode'] = args.mode
 
-    frames_unord = []
-
     with tempfile.TemporaryDirectory() as tmpdir:
         print(tmpdir)
         ffmpeg.input(filepath).output(os.path.join(tmpdir, '%d.png')).run()
@@ -129,29 +128,17 @@ def main(args):
         files.sort(key=lambda f: int(re.sub('\D', '', f)))
         with mp.Pool(mp.cpu_count()) as pool:
             with tqdm(total=len(files)) as t:
-                for res in pool.imap_unordered(loadFrame, zip(range(len(files)), list(map(lambda f: os.path.join(tmpdir, f), files)))):
-                    frames_unord.append(res)
+                for res in pool.imap(loadFrameAndConvertToText, zip(list(map(lambda f: os.path.join(tmpdir, f), files)), repeat(opts))):
+                    texts.append(res)
                     t.update()
-
-    frames = sorted(frames_unord)
-    frames = list(map(lambda p: p[1], frames))
-
-    texts_unord = []
-
-    with mp.Pool(mp.cpu_count()) as pool:
-        with tqdm(total=len(frames)) as t:
-            for res in pool.imap_unordered(frameToText, zip(range(len(frames)), frames, repeat(opts))):
-                t.update()
-                texts_unord.append(res)
-
-    texts = sorted(texts_unord)
-    texts = list(map(lambda p: p[1], texts))
 
     print('frames loaded')
 
-    fps = MediaInfo.parse(filepath).tracks[0].frame_rate
-    origwidth = frames[0].shape[1]
-    origheight = frames[0].shape[0]
+    media_info = [info for info in MediaInfo.parse(
+        filepath).tracks if info.track_type == 'Video'][0]
+    fps = media_info.frame_rate
+    origwidth = media_info.width
+    origheight = media_info.height
     width = ceil(origwidth / N_WIDTH)
     height = ceil(origheight / N_HEIGHT)
 
@@ -160,9 +147,7 @@ def main(args):
         f.write("{},{},{},{},{},{}\n".format(
             filepath, fps, int(width), int(height), origwidth, origheight))
         f.write('=====\n')
-        for text in texts:
-            f.write(text)
-            f.write('\n')
+        f.write('\n'.join(texts))
 
 
 if __name__ == "__main__":
