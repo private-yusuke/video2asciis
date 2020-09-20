@@ -32,10 +32,16 @@ You can modify some parameters by directly using `v2t.py` and `t2v.py`. For deta
 
 You can play your converted texts in your terminal in real time.
 
+1. `$ python3 play.py <input>`
+2. Enjoy!
+
+Alternatively, you can also do this:
+
 1. `$ python3 v2t.py <input> out.txt`
 2. `$ python3 tshow.py out.txt`
 3. Enjoy!
-    * if you can't play the file, it's possibly because your terminal is too small to display the entire text. Try reducing the font size of the terminal, and enlarge the terminal.
+
+If you can't play the file, it's possibly because your terminal is too small to display the entire text. Try reducing the font size of the terminal, or enlarge the dimension of it.
 
 ## Tips
 
