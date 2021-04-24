@@ -77,13 +77,15 @@ if __name__ == "__main__":
             'n_height': N_HEIGHT,
             'n_width': N_WIDTH, 'mode': args.mode}
 
+        start_time = time()
+        frame_cnt = 0
         while True:
-            start_time = time()
             ok, frame = cap.read()
             if ok:
                 displayFrame(frame, stdscr, opts)
-                dur = 1/fps - (time() - start_time) - 0.002
+                dur = (frame_cnt + 1)/fps - (time() - start_time)
                 sleep(max(dur, 0))
+                frame_cnt += 1
             else:
                 break
 

@@ -51,17 +51,23 @@ def main(stdscr):
         end_time = time()
         delta = 0.00625
 
+        # takes the very first time of playing the text
+        begin_time = time()
+
+        frame = 0
         for text in texts:
-            begin_time = time()
             stdscr.erase()
 
             mode, rendertext = text.split('\n', 1)
             stdscr.bkgd(' ', curses.color_pair(getDisplayMode(mode)))
 
             stdscr.addstr(rendertext)
-            sleep(1/fps - (begin_time - end_time))
+            sleep_time = (frame + 1) / fps - (time() - begin_time)
+            sleep(max(0, sleep_time))
+
             stdscr.refresh()
             end_time = time()
+            frame += 1
 
 
 if __name__ == "__main__":
