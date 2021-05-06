@@ -101,8 +101,4 @@ if __name__ == "__main__":
             else:
                 break
 
-        text = frameToText(frame, **opts)
-        height = frame.shape[0] / N_HEIGHT
-        width = frame.shape[1] / N_WIDTH
-
     curses.wrapper(main)
