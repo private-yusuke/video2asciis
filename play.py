@@ -5,6 +5,9 @@ import numpy as np
 import cv2
 import curses
 from time import time, sleep
+from pydub import AudioSegment
+from pydub.playback import play
+import threading
 
 
 THRESHOLD = 90
@@ -51,6 +54,7 @@ if __name__ == "__main__":
         parser.add_argument('-t', '--threshold', type=int,
                             help='threshold between white and black')
         parser.add_argument('-c', '--scale', type=int, default=1)
+        parser.add_argument('-M', '--mute', action='store_true')
         args = parser.parse_args()
 
         N = 16
@@ -77,12 +81,20 @@ if __name__ == "__main__":
             'n_height': N_HEIGHT,
             'n_width': N_WIDTH, 'mode': args.mode}
 
+        # start playing music
+        if not args.mute:
+            song = AudioSegment.from_file(args.input)
+            song_thread = threading.Thread(target=play, args=(song,))
+            song_thread.start()
+
         start_time = time()
         frame_cnt = 0
+
         while True:
             ok, frame = cap.read()
             if ok:
                 displayFrame(frame, stdscr, opts)
+
                 dur = (frame_cnt + 1)/fps - (time() - start_time)
                 sleep(max(dur, 0))
                 frame_cnt += 1

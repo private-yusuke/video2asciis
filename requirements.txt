@@ -4,3 +4,4 @@ numpy
 tqdm
 pymediainfo
 ffmpeg-python
+pydub
