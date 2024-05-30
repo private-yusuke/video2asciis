@@ -2,6 +2,7 @@
 
 ![sample gif](https://github.com/private-yusuke/video2asciis/blob/master/sample.gif?raw=true)
 
+This GIF file is adapted from "[Big Buck Bunny](https://peach.blender.org/)" by [Blender Foundation](www.blender.org), used under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).<br>
 (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org
 
 ---
